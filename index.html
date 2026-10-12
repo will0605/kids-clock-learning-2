@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>歡樂時鐘小學堂 - 兒童互動時鐘學習系統</title>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --hour-color: #2563EB;
+      --minute-color: #DC2626;
+      --accent: #F59E0B;
+      --bg: #F8FAFC;
+      --panel: #FFFFFF;
+      --text: #1E293B;
+      --success: #16A34A;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      font-size: 0.85rem;
+      border-radius: 999px;
+      background: #EEF2FF;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .main-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 960px;
+      width: 100%;
+    }
+
+    /* 控制列與模式切換 */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .nav-btn {
+      padding: 8px 16px;
+      border: 2px solid var(--primary);
+      background: #FFF;
+      color: var(--primary);
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    .nav-btn.active, .nav-btn:hover {
+      background: var(--primary);
+      color: #FFF;
+    }
+
+    /* 時鐘外框卡片 */
+    .card {
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .clock-card {
+      flex: 1 1 360px;
+      max-width: 420px;
+    }
+
+    .info-card {
+      flex: 1 1 320px;
+      max-width: 460px;
+      justify-content: space-between;
+    }
+
+    /* 類比時鐘 SVG */
+    .clock-container {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      user-select: none;
+      touch-action: none;
+    }
+    svg.clock-face {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.07));
+    }
+    .hand-drag-target {
+      cursor: grab;
+    }
+    .hand-drag-target:active {
+      cursor: grabbing;
+    }
+
+    /* 數位時鐘面板 */
+    .digital-clock-box {
+      background: #0F172A;
+      color: #38BDF8;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 2.5rem;
+      padding: 12px 24px;
+      border-radius: 16px;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+      letter-spacing: 2px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .period-badge {
+      font-size: 1rem;
+      background: #1E293B;
+      color: #FCD34D;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+
+    /* AM/PM 與 24H 切換開關 */
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0;
+      background: #F1F5F9;
+      padding: 6px 14px;
+      border-radius: 30px;
+    }
+    .toggle-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: transparent;
+      color: #64748B;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #FFF;
+      color: var(--primary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    /* 互動控制項 */
+    .stepper-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .step-btn {
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .step-btn:hover {
+      background: #E2E8F0;
+    }
+
+    /* 顏色圖例 */
+    .legend {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* 任務反饋區 */
+    .quiz-box {
+      width: 100%;
+      background: #F8FAFC;
+      border: 2px dashed #CBD5E1;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .quiz-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .quiz-input-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .num-input {
+      width: 65px;
+      height: 48px;
+      font-size: 1.6rem;
+      text-align: center;
+      border: 2px solid #CBD5E1;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+    .submit-btn {
+      background: var(--primary);
+      color: #FFF;
+      border: none;
+      padding: 10px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .feedback-msg {
+      margin-top: 10px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      min-height: 28px;
+    }
+
+    /* 任務三 選擇題選項樣式 */
+    .choices-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 0;
+      width: 100%;
+    }
+    .choice-btn {
+      background: #FFFFFF;
+      border: 2px solid #CBD5E1;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1E293B;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .choice-btn:hover {
+      border-color: var(--primary);
+      background: #EEF2FF;
+      transform: translateY(-2px);
+    }
+    .choice-btn.correct {
+      background: #DCFCE7 !important;
+      border-color: #22C55E !important;
+      color: #15803D !important;
+    }
+    .choice-btn.wrong {
+      background: #FEE2E2 !important;
+      border-color: #EF4444 !important;
+      color: #B91C1C !important;
+    }
+
+    /* 輔助標記 */
+    .minute-helper-switch {
+      font-size: 0.85rem;
+      color: #64748B;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* 頂部釣魚遊戲計數列 */
+    .reward-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1E40AF;
+      margin-bottom: 12px;
+    }
+    .reward-btn {
+      background: #2563EB;
+      color: white;
+      border: none;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .reward-btn:hover {
+      background: #1D4ED8;
+      transform: scale(1.03);
+    }
+    .fish-action-btn {
+      background: #059669;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* 彈跳視窗共用 (Modal) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+      text-align: center;
+      position: relative;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: #F1F5F9;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: #64748B;
+    }
+
+    /* 釣魚池場景 */
+    .ocean-scene {
+      background: linear-gradient(180deg, #BAE6FD 0%, #38BDF8 40%, #0284C7 100%);
+      border-radius: 18px;
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 16px 0;
+    }
+    .bobber {
+      font-size: 2.2rem;
+      transition: transform 0.3s;
+    }
+    .bobber.fishing {
+      animation: bob 0.6s infinite ease-in-out alternate;
+    }
+    @keyframes bob {
+      0% { transform: translateY(-5px) rotate(-8deg); }
+      100% { transform: translateY(10px) rotate(8deg); }
+    }
+    .water-wave {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 50% 50% 0 0;
+    }
+
+    /* 獲取魚隻展示卡 */
+    .catch-result-box {
+      margin-top: 12px;
+      padding: 14px;
+      background: #F0FDF4;
+      border: 2px dashed #86EFAC;
+      border-radius: 16px;
+      display: none;
+    }
+    .catch-emoji {
+      font-size: 3.5rem;
+      margin: 4px 0;
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.2); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 水族箱列表 */
+    .aquarium-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      max-height: 280px;
+      overflow-y: auto;
+      margin-top: 14px;
+      padding: 4px;
+    }
+    .aquarium-item {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .aquarium-item .emoji {
+      font-size: 1.8rem;
+    }
+    .aquarium-item .count {
+      font-weight: bold;
+      color: #2563EB;
+      font-size: 0.75rem;
+    }
+
+    /* ============================================================
+       手機端與行動裝置適配 (Mobile Responsive & Touch Optimization)
+       ============================================================ */
+    @media (max-width: 640px) {
+      body {
+        padding: 10px 8px calc(14px + env(safe-area-inset-bottom, 0px)) 8px;
+      }
+      header {
+        margin-bottom: 8px;
+      }
+      header h1 {
+        font-size: 1.35rem;
+      }
+      header p {
+        font-size: 0.8rem !important;
+      }
+
+      /* 獎勵列自適應緊湊 */
+      .reward-bar {
+        font-size: 0.78rem;
+        padding: 5px 10px;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+        border-radius: 16px;
+        margin-bottom: 8px;
+      }
+      .reward-btn {
+        padding: 3px 8px;
+        font-size: 0.78rem;
+      }
+
+      /* 導航分頁切換：2x2 緊湊平鋪網格，大拇指友善 */
+      .nav-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      .nav-btn {
+        padding: 8px 4px;
+        font-size: 0.82rem;
+        border-radius: 12px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .main-container {
+        gap: 12px;
+      }
+
+      /* 卡片全螢幕化與圓角適配 */
+      .card {
+        padding: 14px 10px;
+        border-radius: 18px;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      /* 時鐘依手機視窗寬度流體自適應 */
+      .clock-container {
+        width: min(82vw, 290px);
+        height: min(82vw, 290px);
+      }
+
+      /* 數位時鐘卡片在手機上的大小 */
+      .digital-clock-box {
+        font-size: 2.1rem;
+        padding: 8px 14px;
+        margin: 8px 0;
+      }
+      .period-badge {
+        font-size: 0.85rem;
+        padding: 3px 6px;
+      }
+
+      /* 任務三 選擇題選項在手機上充足高度 */
+      .choices-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .choice-btn {
+        padding: 12px 6px;
+        font-size: 1.1rem;
+        border-radius: 12px;
+      }
+
+      /* 任務一 輸入框防縮放 (字級 >= 16px) */
+      .num-input {
+        width: 68px;
+        height: 52px;
+        font-size: 1.8rem;
+      }
+
+      /* 彈跳視窗適配 */
+      .modal-card {
+        padding: 18px 14px;
+        border-radius: 20px;
+      }
+      .ocean-scene {
+        height: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⏰ 歡樂時鐘小學堂 <span class="badge">無秒針專注版</span></h1>
+    <p style="color: #64748B; font-size: 0.95rem; margin-top: 4px;">模擬真實機械連動・輕鬆掌握時針分針與24小時制</p>
+  </header>
+
+  <!-- 獎勵與水族箱狀態列 -->
+  <div class="reward-bar">
+    <span>🎣 釣魚機會：<b id="fishChancesCount" style="color: #DC2626; font-size: 1.1rem;">0</b> 次</span>
+    <span style="color: #94A3B8;">|</span>
+    <span>🐠 我的水族箱：<b id="aquariumCount" style="color: #2563EB;">0</b> 隻</span>
+    <button class="reward-btn" onclick="openFishingModal()">前往釣魚 🎣</button>
+    <button class="reward-btn" style="background: #0284C7;" onclick="openAquariumModal()">水族箱 🏝️</button>
+  </div>
+
+  <!-- 模式切換 -->
+  <div class="nav-tabs">
+    <button class="nav-btn active" onclick="setMode('explore')">🔍 自由探索模式</button>
+    <button class="nav-btn" onclick="setMode('read_clock')">🎯 任務一：看鐘報時 (類比 ➔ 數位)</button>
+    <button class="nav-btn" onclick="setMode('set_clock')">🛠️ 任務二：撥鐘挑戰 (數位 ➔ 類比)</button>
+    <button class="nav-btn" onclick="setMode('multiple_choice')">📝 任務三：看鐘選時間 (四選一)</button>
+  </div>
+
+  <div class="main-container">
+
+    <!-- 類比時鐘區域 -->
+    <div class="card clock-card">
+      <div class="clock-container" id="clockWrapper">
+        <svg class="clock-face" viewBox="0 0 300 300" id="clockSvg">
+          <!-- 鐘面外圈 -->
+          <circle cx="150" cy="150" r="140" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="12" />
+          <circle cx="150" cy="150" r="132" fill="#FFFFFF" stroke="#475569" stroke-width="2" />
+
+          <!-- 刻度與數字 (動態生成) -->
+          <g id="ticksGroup"></g>
+          <g id="minuteHelpersGroup" style="display: block;"></g>
+          <g id="numbersGroup"></g>
+
+          <!-- 時針 (較短、藍色) -->
+          <line id="hourHand" x1="150" y1="150" x2="150" y2="78"
+                stroke="#2563EB" stroke-width="8" stroke-linecap="round" />
+          
+          <!-- 分針 (較長、紅色、支援拖曳，含行動端擴大觸控熱區) -->
+          <g id="minuteHandGroup" class="hand-drag-target">
+            <!-- 行動端手指觸摸擴展熱區 (半徑 24px) -->
+            <circle cx="150" cy="38" r="24" fill="transparent" pointer-events="all"/>
+            <line id="minuteHand" x1="150" y1="150" x2="150" y2="40"
+                  stroke="#DC2626" stroke-width="5" stroke-linecap="round" />
+            <!-- 分針末端拖曳手把圓球 -->
+            <circle id="minuteThumb" cx="150" cy="38" r="9" fill="#DC2626" stroke="#FFFFFF" stroke-width="2"/>
+          </g>
+
+          <!-- 中心軸承 -->
+          <circle cx="150" cy="150" r="8" fill="#1E293B" />
+          <circle cx="150" cy="150" r="3" fill="#FFFFFF" />
+        </svg>
+      </div>
+
+      <label class="minute-helper-switch">
+        <input type="checkbox" id="toggleMinuteTicks" checked onchange="toggleMinuteLabels(this.checked)">
+        顯示外圈分鐘輔助刻度 (5, 10, 15... 60)
+      </label>
+
+      <div class="legend">
+        <div class="legend-item"><div class="color-dot" style="background:#2563EB"></div>時針 (短・看大字)</div>
+        <div class="legend-item"><div class="color-dot" style="background:#DC2626"></div>分針 (長・可撥動)</div>
+      </div>
+    </div>
+
+    <!-- 數位顯示與學習控制面板 -->
+    <div class="card info-card">
+      
+      <!-- 制式切換 (12H / 24H & AM / PM) -->
+      <div id="digitalClockSettingsSection">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size: 1.1rem; color: #334155;">時間對照與設定</h3>
+          <!-- 12H / 24H 切換 -->
+          <div class="toggle-group">
+            <button class="toggle-btn active" id="btn12h" onclick="setTimeFormat('12h')">12 小時制</button>
+            <button class="toggle-btn" id="btn24h" onclick="setTimeFormat('24h')">24 小時制</button>
+          </div>
+        </div>
+
+        <!-- 數位時鐘卡片 -->
+        <div class="digital-clock-box">
+          <span id="periodBadge" class="period-badge">上午 AM</span>
+          <span id="digitalDisplay">09:00</span>
+        </div>
+
+        <!-- 12小時制下的 AM/PM 快速按鈕 -->
+        <div id="ampmSelector" style="display: flex; justify-content: center; gap: 8px; margin-top: 4px;">
+          <button class="toggle-btn active" id="btnAM" onclick="setPeriod('AM')">☀️ 上午 (AM)</button>
+          <button class="toggle-btn" id="btnPM" onclick="setPeriod('PM')">🌙 下午 (PM)</button>
+        </div>
+
+        <!-- 微調按鈕 (探索模式) -->
+        <div id="quickAdjust" class="stepper-row">
+          <button class="step-btn" onclick="adjustMinutes(-60)">-1 小時</button>
+          <button class="step-btn" onclick="adjustMinutes(-5)">-5 分</button>
+          <button class="step-btn" onclick="adjustMinutes(5)">+5 分</button>
+          <button class="step-btn" onclick="adjustMinutes(60)">+1 小時</button>
+        </div>
+      </div>
+
+      <!-- 任務互動回饋區 -->
+      <div id="quizSection" class="quiz-box" style="display: none;">
+        <div id="quizContent"></div>
+      </div>
+
+      <!-- 說明文 -->
+      <div id="hintBox" style="font-size: 0.85rem; color: #64748B; background: #F1F5F9; padding: 10px 14px; border-radius: 10px; margin-top: 12px;">
+        💡 <b>小提示：</b>用手指或滑鼠按住<b>紅色分針</b>旋轉，時針會像真實時鐘一樣跟著齒輪聯動前進喔！
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- 釣魚互動視窗 (Fishing Modal) -->
+  <div id="fishingModal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="closeFishingModal()">✕</button>
+      <h2 style="color: #0284C7; font-size: 1.4rem;">🎣 開心小漁夫釣魚池</h2>
+      <p style="color: #64748B; font-size: 0.9rem; margin-top: 4px;">答對時鐘題目換來的魚餌！看看今天會釣到什麼魚？</p>
+
+      <div class="ocean-scene">
+        <div id="fishingBobber" class="bobber">🪱</div>
+        <div class="water-wave"></div>
+      </div>
+
+      <div style="font-size: 0.95rem; font-weight: bold; color: #1E293B;">
+        剩餘魚餌機會：<span id="modalChancesText" style="color: #DC2626; font-size: 1.2rem;">0</span> 次
+      </div>
+
+      <!-- 釣到的魚展示結果 -->
+      <div id="catchResultBox" class="catch-result-box">
+        <div id="catchStars" style="color: #F59E0B; font-size: 1.1rem; letter-spacing: 2px;"></div>
+        <div id="catchEmoji" class="catch-emoji">🐟</div>
+        <div id="catchName" style="font-size: 1.2rem; font-weight: bold; color: #065F46;"></div>
+        <div id="catchDesc" style="font-size: 0.85rem; color: #047857; margin-top: 4px;"></div>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: center;">
+        <button id="btnCastRod" class="submit-btn" style="background: #0284C7;" onclick="castFishingRod()">甩竿釣魚 🎣</button>
+        <button class="step-btn" onclick="closeFishingModal()">回去繼續學時鐘 ⏰</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 水族箱展示視窗 (Aquarium Modal) -->
+  <div id="aquariumModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 500px;">
+      <button class="modal-close-btn" onclick="closeAquariumModal()">✕</button>
+      <h2 style="color: #2563EB; font-size: 1.4rem;">🏝️ 我的夢幻水族箱</h2>
+      <p style="color: #64748B; font-size: 0.9rem; margin-top: 4px;">這是你努力答對題目所收集的所有海洋好朋友喔！</p>
+
+      <div id="aquariumList" class="aquarium-grid">
+        <!-- 動態渲染魚隻 -->
+      </div>
+
+      <!-- 操作按鈕列 -->
+      <div style="margin-top: 18px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <button class="submit-btn" style="flex: 1;" onclick="closeAquariumModal()">太棒了，繼續挑戰！✨</button>
+        <button class="step-btn" style="font-size: 0.8rem; color: #64748B;" onclick="toggleResetArea(true)">🔒 重置水族箱</button>
+      </div>
+
+      <!-- 密碼輸入重置面板 -->
+      <div id="resetControlArea" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #CBD5E1; display: none;">
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 6px;">請輸入重置密碼 (預設: <b>8888</b>)：</p>
+        <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+          <input type="password" id="resetPasswordInput" placeholder="密碼" style="padding: 6px 10px; border: 1px solid #CBD5E1; border-radius: 8px; width: 110px; text-align: center; font-size: 1rem;">
+          <button class="submit-btn" style="padding: 6px 14px; font-size: 0.85rem; background: #DC2626;" onclick="executeAquariumReset()">確認清空</button>
+          <button class="step-btn" style="padding: 6px 10px; font-size: 0.85rem;" onclick="toggleResetArea(false)">取消</button>
+        </div>
+        <div id="resetFeedback" style="font-size: 0.85rem; margin-top: 6px; font-weight: bold; min-height: 20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 狀態管理
+    let currentTotalMinutes = 9 * 60; // 預設 09:00 (以 0 ~ 1439 分鐘表示一日時間)
+    let currentFormat = '12h';        // '12h' 或 '24h'
+    let currentMode = 'explore';      // 'explore', 'read_clock', 'set_clock'
+    let targetQuizMinutes = 0;        // 題目目標時間
+    let quizMinuteMode = 'any';       // 'any' (0~59任意隨機整數分鐘，如12分、28分), 'step5' (5分倍數)
+
+    // 釣魚獎勵系統資料
+    let fishChances = 0;              // 可用釣魚次數
+    let caughtFishInventory = [];     // 已釣到的魚清單
+    let currentQuizRewarded = false;  // 當前題目是否已發放過釣魚獎勵
+    let isCasting = false;            // 是否正在收線釣魚動畫中
+
+    // 本地持久化儲存 Key (localStorage)
+    const STORAGE_KEY_INVENTORY = 'kids_clock_fish_inventory';
+    const STORAGE_KEY_CHANCES = 'kids_clock_fish_chances';
+
+    function saveStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_INVENTORY, JSON.stringify(caughtFishInventory));
+        localStorage.setItem(STORAGE_KEY_CHANCES, fishChances.toString());
+      } catch (e) {
+        console.warn("無法存入 localStorage:", e);
+      }
+    }
+
+    function loadStorage() {
+      try {
+        const savedInv = localStorage.getItem(STORAGE_KEY_INVENTORY);
+        if (savedInv) {
+          caughtFishInventory = JSON.parse(savedInv);
+        }
+        const savedChances = localStorage.getItem(STORAGE_KEY_CHANCES);
+        if (savedChances !== null) {
+          fishChances = parseInt(savedChances, 10) || 0;
+        }
+      } catch (e) {
+        console.warn("無法從 localStorage 讀取:", e);
+      }
+    }
+
+    const FISH_POOL = [
+      { id: 'goldfish', name: '活潑小金魚', emoji: '🐟', stars: '★', weight: 30, desc: '游得特別快的小可愛，最喜歡在水草間轉圈圈！' },
+      { id: 'clownfish', name: '斑馬小丑魚', emoji: '🐠', stars: '★', weight: 25, desc: '住在海葵裡的小精靈，好奇心非常旺盛！' },
+      { id: 'blowfish', name: '圓滾滾河豚', emoji: '🐡', stars: '★★', weight: 15, desc: '吸一口氣就鼓成圓滾滾的大皮球！' },
+      { id: 'squid', name: '噴墨小烏賊', emoji: '🦑', stars: '★★', weight: 10, desc: '咻咻咻～噴出黑墨汁跟大家玩抓迷藏！' },
+      { id: 'octopus', name: '聰明小章魚', emoji: '🐙', stars: '★★', weight: 8, desc: '有八隻靈巧的手腕，特別擅長調整時鐘齒輪！' },
+      { id: 'crab', name: '橫著走小螃蟹', emoji: '🦀', stars: '★★', weight: 6, desc: '剪刀石頭布永遠出剪刀，走起路來橫衝直撞！' },
+      { id: 'dolphin', name: '微笑小海豚', emoji: '🐬', stars: '★★★', weight: 3, desc: '躍出海面向你鞠躬，誇讚你的時間學得一級棒！' },
+      { id: 'turtle', name: '長壽海龜爺爺', emoji: '🐢', stars: '★★★', weight: 2, desc: '在大海悠遊了一百年，看過無數次的晨昏時光！' },
+      { id: 'whale', name: '溫柔大鯨魚', emoji: '🐳', stars: '★★★★', weight: 0.8, desc: '噴出超高七彩水柱，在空中畫出一道美麗彩虹！' },
+      { id: 'treasure', name: '古代時鐘秘寶箱', emoji: '👑', stars: '★★★★★', weight: 0.2, desc: '傳說中裝滿黃金齒輪與神祕時間寶石的深海寶藏！' }
+    ];
+
+    // 初始化時鐘刻度與數字
+    function initClockFace() {
+      const ticksGroup = document.getElementById('ticksGroup');
+      const numbersGroup = document.getElementById('numbersGroup');
+      const minuteHelpersGroup = document.getElementById('minuteHelpersGroup');
+
+      for (let i = 0; i < 60; i++) {
+        const angle = i * 6; // 每分鐘 6 度
+        const rad = (angle - 90) * (Math.PI / 180);
+        const isHour = i % 5 === 0;
+
+        // 刻度線
+        const r1 = isHour ? 122 : 126;
+        const r2 = 132;
+        const x1 = 150 + r1 * Math.cos(rad);
+        const y1 = 150 + r1 * Math.sin(rad);
+        const x2 = 150 + r2 * Math.cos(rad);
+        const y2 = 150 + r2 * Math.sin(rad);
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        line.setAttribute("stroke", isHour ? "#1E293B" : "#94A3B8");
+        line.setAttribute("stroke-width", isHour ? "3" : "1.5");
+        ticksGroup.appendChild(line);
+
+        // 小時數字 1~12
+        if (isHour) {
+          const hourNum = i / 5 === 0 ? 12 : i / 5;
+          const nr = 100;
+          const nx = 150 + nr * Math.cos(rad);
+          const ny = 150 + nr * Math.sin(rad) + 7; // 微調垂直置中
+
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", nx);
+          text.setAttribute("y", ny);
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("font-size", "20");
+          text.setAttribute("font-weight", "bold");
+          text.setAttribute("fill", "#1E293B");
+          text.textContent = hourNum;
+          numbersGroup.appendChild(text);
+
+          // 5, 10, 15... 60 分鐘外圈輔助提示
+          const mr = 142;
+          const mx = 150 + mr * Math.cos(rad);
+          const my = 150 + mr * Math.sin(rad) + 4;
+          const mText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          mText.setAttribute("x", mx);
+          mText.setAttribute("y", my);
+          mText.setAttribute("text-anchor", "middle");
+          mText.setAttribute("font-size", "10");
+          mText.setAttribute("fill", "#DC2626");
+          mText.setAttribute("font-weight", "bold");
+          mText.textContent = (hourNum * 5).toString();
+          minuteHelpersGroup.appendChild(mText);
+        }
+      }
+    }
+
+    // 渲染指針位置與數位時間
+    function render() {
+      // 正規化在 0 ~ 1439 分鐘內，確保為整數，徹底杜絕小數點
+      currentTotalMinutes = Math.round(((currentTotalMinutes % 1440) + 1440) % 1440);
+      
+      const totalHours24 = Math.floor(currentTotalMinutes / 60);
+      const minutes = currentTotalMinutes % 60;
+      const isPM = totalHours24 >= 12;
+
+      // 計算角度 (分針: 每分 6 度；時針: 每分 0.5 度，聯動變化)
+      const minuteAngle = minutes * 6;
+      const hourAngle = ((totalHours24 % 12) * 60 + minutes) * 0.5;
+
+      // 旋轉指針
+      document.getElementById('minuteHandGroup').setAttribute("transform", `rotate(${minuteAngle} 150 150)`);
+      document.getElementById('hourHand').setAttribute("transform", `rotate(${hourAngle} 150 150)`);
+
+      // 數位時鐘文字渲染
+      const displayElem = document.getElementById('digitalDisplay');
+      const badgeElem = document.getElementById('periodBadge');
+
+      if (currentFormat === '24h') {
+        badgeElem.textContent = "24H 制";
+        displayElem.textContent = `${String(totalHours24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      } else {
+        const hour12 = (totalHours24 % 12) === 0 ? 12 : (totalHours24 % 12);
+        badgeElem.textContent = isPM ? "下午 PM" : "上午 AM";
+        displayElem.textContent = `${String(hour12).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      }
+
+      // 更新 AM/PM 按鈕樣式
+      document.getElementById('btnAM').classList.toggle('active', !isPM);
+      document.getElementById('btnPM').classList.toggle('active', isPM);
+    }
+
+    // 拖曳旋轉分針互動
+    const clockWrapper = document.getElementById('clockWrapper');
+    let isDragging = false;
+    let lastAngle = 0;
+    let accumulatedDiffAngle = 0;
+
+    function getAngleFromEvent(e) {
+      const rect = clockWrapper.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      if (angle < 0) angle += 360;
+      return angle;
+    }
+
+    function onPointerDown(e) {
+      if (currentMode === 'read_clock' || currentMode === 'multiple_choice') {
+        // 任務一與任務三模式下鎖定指針，讓小朋友專注看鐘，避免手滑誤動題目指針
+        return;
+      }
+      if (e.cancelable) e.preventDefault();
+      isDragging = true;
+      if (clockWrapper.setPointerCapture && e.pointerId) {
+        try { clockWrapper.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      lastAngle = getAngleFromEvent(e);
+      accumulatedDiffAngle = 0;
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
+      window.addEventListener('pointerup', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      if (e.cancelable) e.preventDefault();
+      const newAngle = getAngleFromEvent(e);
+      let diff = newAngle - lastAngle;
+
+      // 處理跨越 0 度問題 (例：359 -> 1度 或 1 -> 359度)
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+
+      accumulatedDiffAngle += diff;
+      lastAngle = newAngle;
+
+      // 每 6 度恰好對應 1 分鐘，嚴格以 1 分鐘為單位整數跳動
+      const stepMinutes = Math.trunc(accumulatedDiffAngle / 6);
+      if (stepMinutes !== 0) {
+        currentTotalMinutes = Math.round(currentTotalMinutes + stepMinutes);
+        accumulatedDiffAngle -= stepMinutes * 6;
+        render();
+        // 手機端輕微機械齒輪觸覺反饋
+        if (navigator.vibrate) {
+          try { navigator.vibrate(6); } catch (_) {}
+        }
+      }
+    }
+
+    function onPointerUp(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      if (clockWrapper.releasePointerCapture && e && e.pointerId) {
+        try { clockWrapper.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      accumulatedDiffAngle = 0;
+      // 確保結束時為乾淨整數
+      currentTotalMinutes = Math.round(currentTotalMinutes);
+      render();
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    }
+
+    clockWrapper.addEventListener('pointerdown', onPointerDown, { passive: false });
+
+    // 時間增減控制
+    function adjustMinutes(delta) {
+      currentTotalMinutes = Math.round(currentTotalMinutes + delta);
+      render();
+    }
+
+    // 12H / 24H 制切換
+    function setTimeFormat(format) {
+      currentFormat = format;
+      document.getElementById('btn12h').classList.toggle('active', format === '12h');
+      document.getElementById('btn24h').classList.toggle('active', format === '24h');
+      document.getElementById('ampmSelector').style.display = format === '12h' ? 'flex' : 'none';
+      render();
+    }
+
+    // AM / PM 切換
+    function setPeriod(period) {
+      const isCurrentlyPM = Math.floor(currentTotalMinutes / 60) >= 12;
+      if (period === 'PM' && !isCurrentlyPM) {
+        currentTotalMinutes += 12 * 60;
+      } else if (period === 'AM' && isCurrentlyPM) {
+        currentTotalMinutes -= 12 * 60;
+      }
+      render();
+    }
+
+    // 開關外圈分鐘標記
+    function toggleMinuteLabels(visible) {
+      document.getElementById('minuteHelpersGroup').style.display = visible ? 'block' : 'none';
+    }
+
+    // 模式切換管理
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => {
+        return b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${mode}'`);
+      });
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const quizSection = document.getElementById('quizSection');
+      const digitalClockSettingsSection = document.getElementById('digitalClockSettingsSection');
+      const quickAdjust = document.getElementById('quickAdjust');
+      const hintBox = document.getElementById('hintBox');
+
+      if (mode === 'explore') {
+        digitalClockSettingsSection.style.display = 'block';
+        quickAdjust.style.display = 'flex';
+        quizSection.style.display = 'none';
+        if (hintBox) {
+          hintBox.style.display = 'block';
+          hintBox.innerHTML = '💡 <b>小提示：</b>用手指或滑鼠按住<b>紅色分針</b>旋轉，時針會像真實時鐘一樣跟著齒輪聯動前進喔！';
+        }
+      } else if (mode === 'read_clock') {
+        // 任務一：完全隱藏「時間對照與設定」以及數位時鐘，僅讓使用者輸入時間
+        digitalClockSettingsSection.style.display = 'none';
+        quizSection.style.display = 'block';
+        if (hintBox) hintBox.style.display = 'none';
+        startReadClockQuiz();
+      } else if (mode === 'set_clock') {
+        // 任務二：隱藏即時數位顯示（避免直接看答案），顯示撥鐘任務目標
+        digitalClockSettingsSection.style.display = 'none';
+        quizSection.style.display = 'block';
+        if (hintBox) {
+          hintBox.style.display = 'block';
+          hintBox.innerHTML = '💡 <b>小提示：</b>用手指或滑鼠撥動<b>紅色分針</b>，時針會自動連動，撥好後請點擊「檢查答案」！';
+        }
+        startSetClockQuiz();
+      } else if (mode === 'multiple_choice') {
+        // 任務三：選擇題模式（四選一），隱藏數位設定，專注看指針選擇
+        digitalClockSettingsSection.style.display = 'none';
+        quizSection.style.display = 'block';
+        if (hintBox) hintBox.style.display = 'none';
+        startMultipleChoiceQuiz();
+      }
+    }
+
+    function setQuizDifficulty(mode) {
+      quizMinuteMode = mode;
+      startReadClockQuiz();
+    }
+
+    // 任務一：看鐘報時 (類比 ➔ 數位)
+    function startReadClockQuiz() {
+      currentQuizRewarded = false; // 重設本題獎勵狀態
+      // 隨機產生時間：依難度支援 0~59 任意隨機整數分鐘 (如12分、28分) 或 5分倍數
+      const h = Math.floor(Math.random() * 12);
+      let m = 0;
+      if (quizMinuteMode === 'any') {
+        m = Math.floor(Math.random() * 60); // 0 ~ 59 任意整數分鐘，例如 12分、28分、43分
+      } else {
+        m = Math.floor(Math.random() * 12) * 5; // 5分倍數 (基礎入門)
+      }
+      const isPm = Math.random() > 0.5;
+      currentTotalMinutes = (isPm ? 12 : 0) * 60 + h * 60 + m;
+      render();
+
+      const quizContent = document.getElementById('quizContent');
+      quizContent.innerHTML = `
+        <div class="quiz-title">👀 仔細看時鐘，現在是幾點幾分呢？</div>
+        <div style="font-size:0.9rem; color:#64748B; margin-bottom: 8px;">先看短的時針指到哪裡，再看長的分針指到幾分！</div>
+
+        <!-- 分鐘模式切換 -->
+        <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button class="step-btn" style="${quizMinuteMode === 'any' ? 'background: #2563EB; color: #FFF; border-color: #2563EB;' : ''} padding: 4px 12px; font-size: 0.85rem;" onclick="setQuizDifficulty('any')">🎲 任意隨機分鐘 (如12分、28分)</button>
+          <button class="step-btn" style="${quizMinuteMode === 'step5' ? 'background: #2563EB; color: #FFF; border-color: #2563EB;' : ''} padding: 4px 12px; font-size: 0.85rem;" onclick="setQuizDifficulty('step5')">⚡ 5分倍數 (基礎)</button>
+        </div>
+
+        <div class="quiz-input-group">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="inputHour" class="num-input" placeholder="時" maxlength="2" onkeydown="if(event.key==='Enter') document.getElementById('inputMinute').focus()">
+          <span style="font-size: 1.5rem; font-weight: bold;">:</span>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="inputMinute" class="num-input" placeholder="分" maxlength="2" onkeydown="if(event.key==='Enter') checkReadClockAnswer()">
+        </div>
+        <button class="submit-btn" onclick="checkReadClockAnswer()">確認答案 ✨</button>
+        <button class="step-btn" style="margin-left: 8px;" onclick="startReadClockQuiz()">換一題 🎲</button>
+        <div id="quizFeedback" class="feedback-msg"></div>
+      `;
+    }
+
+    function checkReadClockAnswer() {
+      const valH = document.getElementById('inputHour').value.trim();
+      const valM = document.getElementById('inputMinute').value.trim();
+      const feedback = document.getElementById('quizFeedback');
+
+      if (valH === '' || valM === '') {
+        feedback.style.color = "var(--accent)";
+        feedback.innerHTML = "⚠️ 請在兩個格子裡分別輸入「時」與「分」喔！";
+        return;
+      }
+
+      const inputH = parseInt(valH, 10);
+      const inputM = parseInt(valM, 10);
+
+      const totalH24 = Math.floor(currentTotalMinutes / 60);
+      const correctH = (totalH24 % 12) === 0 ? 12 : (totalH24 % 12);
+      const correctM = currentTotalMinutes % 60;
+
+      if (inputH === correctH && inputM === correctM) {
+        feedback.style.color = "var(--success)";
+        // 成功觸覺震動
+        if (navigator.vibrate) try { navigator.vibrate([30, 40, 30]); } catch (_) {}
+        if (!currentQuizRewarded) {
+          currentQuizRewarded = true;
+          fishChances += 1;
+          saveStorage(); // 本地持久化儲存
+          updateRewardUI();
+          feedback.innerHTML = `
+            🎉 太厲害了！答對了！就是 <b>${correctH} 點 ${correctM} 分</b>！<br>
+            🎁 恭喜獲得 <b>1 次釣魚機會</b> 🎣！<br>
+            <button class="fish-action-btn" onclick="openFishingModal()">馬上甩竿釣魚 🎣</button>
+          `;
+        } else {
+          feedback.innerHTML = `🎉 太厲害了！答對了！就是 <b>${correctH} 點 ${correctM} 分</b>！`;
+        }
+      } else {
+        feedback.style.color = "var(--minute-color)";
+        feedback.innerHTML = `💡 再看一眼喔！時針在 <b>${correctH}</b> 附近，分針指向 <b>${correctM}</b> 分。`;
+      }
+    }
+
+    function setClockQuizDifficulty(mode) {
+      quizMinuteMode = mode;
+      startSetClockQuiz();
+    }
+
+    // 任務二：撥鐘挑戰 (數位 ➔ 類比)
+    function startSetClockQuiz() {
+      currentQuizRewarded = false; // 重設本題獎勵狀態
+      // 隨機出題：依難度支援任意隨機分鐘 (0~59，如12分、28分) 或 5分倍數
+      const randH = Math.floor(Math.random() * 12) + 1;
+      let randM = 0;
+      if (quizMinuteMode === 'any') {
+        randM = Math.floor(Math.random() * 60); // 0 ~ 59 隨機整數分鐘，如 12分、28分
+      } else {
+        randM = Math.floor(Math.random() * 12) * 5;
+      }
+      const isPm = Math.random() > 0.5;
+      targetQuizMinutes = (isPm ? 12 : 0) * 60 + (randH % 12) * 60 + randM;
+
+      // 先將時鐘重設為 12:00 讓小朋友撥動
+      currentTotalMinutes = 12 * 60;
+      render();
+
+      const timeStr = `${String(randH).padStart(2, '0')}:${String(randM).padStart(2, '0')}`;
+      const periodStr = isPm ? "下午 (PM)" : "上午 (AM)";
+      const time24Str = `${String((randH % 12) + (isPm ? 12 : 0)).padStart(2, '0')}:${String(randM).padStart(2, '0')}`;
+
+      const quizContent = document.getElementById('quizContent');
+      quizContent.innerHTML = `
+        <div class="quiz-title">🖐️ 請用手指或滑鼠撥動指針！</div>
+
+        <!-- 分鐘模式切換 -->
+        <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+          <button class="step-btn" style="${quizMinuteMode === 'any' ? 'background: #2563EB; color: #FFF; border-color: #2563EB;' : ''} padding: 4px 12px; font-size: 0.85rem;" onclick="setClockQuizDifficulty('any')">🎲 任意隨機分鐘 (如12分、28分)</button>
+          <button class="step-btn" style="${quizMinuteMode === 'step5' ? 'background: #2563EB; color: #FFF; border-color: #2563EB;' : ''} padding: 4px 12px; font-size: 0.85rem;" onclick="setClockQuizDifficulty('step5')">⚡ 5分倍數 (基礎)</button>
+        </div>
+
+        <div style="font-size: 1.3rem; font-weight: bold; color: var(--primary); margin: 8px 0;">
+          目標時間：${periodStr} ${timeStr} <span style="font-size:0.9rem; color:#64748B;">(24小時制為 ${time24Str})</span>
+        </div>
+        <div style="font-size: 0.85rem; color:#64748B; margin-bottom: 10px;">請撥動紅色分針，把時鐘調整到上面的時間！</div>
+        <button class="submit-btn" onclick="checkSetClockAnswer()">撥好囉，檢查答案 🎯</button>
+        <button class="step-btn" style="margin-left: 8px;" onclick="startSetClockQuiz()">換一題 🎲</button>
+        <div id="quizFeedback" class="feedback-msg"></div>
+      `;
+    }
+
+    function checkSetClockAnswer() {
+      const feedback = document.getElementById('quizFeedback');
+      // 比對指針位置 (12小時制角度對齊，誤差容許正負 2 分鐘)
+      const currentMod720 = Math.round(currentTotalMinutes) % 720;
+      const targetMod720 = Math.round(targetQuizMinutes) % 720;
+      const diff = Math.abs(currentMod720 - targetMod720);
+
+      if (diff <= 2 || diff >= 718) {
+        feedback.style.color = "var(--success)";
+        if (navigator.vibrate) try { navigator.vibrate([30, 40, 30]); } catch (_) {}
+        if (!currentQuizRewarded) {
+          currentQuizRewarded = true;
+          fishChances += 1;
+          saveStorage(); // 本地持久化儲存
+          updateRewardUI();
+          feedback.innerHTML = `
+            🏆 答對了！手藝真好，指針位置完全正確！<br>
+            🎁 恭喜獲得 <b>1 次釣魚機會</b> 🎣！<br>
+            <button class="fish-action-btn" onclick="openFishingModal()">馬上甩竿釣魚 🎣</button>
+          `;
+        } else {
+          feedback.innerHTML = `🏆 答對了！手藝真好，指針位置完全正確！`;
+        }
+      } else {
+        feedback.style.color = "var(--minute-color)";
+        if (navigator.vibrate) try { navigator.vibrate(35); } catch (_) {}
+        const targetH = Math.floor(targetQuizMinutes / 60) % 12 || 12;
+        const targetM = targetQuizMinutes % 60;
+        feedback.innerHTML = `🧐 還差一點點！試著把分針指到 <b>${targetM}</b> 分，時針會走到 <b>${targetH}</b> 喔！`;
+      }
+    }
+
+    // --- 任務三：看鐘選時間 (四選一選擇題) ---
+    let currentMcCorrectIndex = 0;
+    let currentMcOptions = [];
+    let isMcAnswered = false;
+
+    function setMcDifficulty(mode) {
+      quizMinuteMode = mode;
+      startMultipleChoiceQuiz();
+    }
+
+    function startMultipleChoiceQuiz() {
+      currentQuizRewarded = false;
+      isMcAnswered = false;
+
+      // 產生隨機題目時間
+      const h = Math.floor(Math.random() * 12);
+      let m = 0;
+      if (quizMinuteMode === 'any') {
+        m = Math.floor(Math.random() * 60); // 0 ~ 59 隨機分鐘
+      } else {
+        m = Math.floor(Math.random() * 12) * 5;
+      }
+      const isPm = Math.random() > 0.5;
+      currentTotalMinutes = (isPm ? 12 : 0) * 60 + h * 60 + m;
+      render();
+
+      const totalH24 = Math.floor(currentTotalMinutes / 60);
+      const correctH = (totalH24 % 12) === 0 ? 12 : (totalH24 % 12);
+      const correctM = currentTotalMinutes % 60;
+      const correctStr = `${String(correctH).padStart(2, '0')}:${String(correctM).padStart(2, '0')}`;
+
+      // 產生四個互不重複的干擾選項
+      const optionsSet = new Set([correctStr]);
+
+      // 干擾項 1: 時針看多一小時 (4:50 容易誤認成 5:50)
+      const hPlus1 = (correctH % 12) + 1;
+      optionsSet.add(`${String(hPlus1).padStart(2, '0')}:${String(correctM).padStart(2, '0')}`);
+
+      // 干擾項 2: 時針看少一小時
+      const hMinus1 = correctH === 1 ? 12 : correctH - 1;
+      optionsSet.add(`${String(hMinus1).padStart(2, '0')}:${String(correctM).padStart(2, '0')}`);
+
+      // 干擾項 3: 分鐘差 5 分或 10 分
+      const mPlus5 = (correctM + 5) % 60;
+      optionsSet.add(`${String(correctH).padStart(2, '0')}:${String(mPlus5).padStart(2, '0')}`);
+      const mMinus5 = (correctM + 55) % 60;
+      optionsSet.add(`${String(correctH).padStart(2, '0')}:${String(mMinus5).padStart(2, '0')}`);
+
+      // 隨機補足 4 個選項
+      while (optionsSet.size < 4) {
+        const randH = Math.floor(Math.random() * 12) + 1;
+        const randM = quizMinuteMode === 'any' ? Math.floor(Math.random() * 60) : Math.floor(Math.random() * 12) * 5;
+        optionsSet.add(`${String(randH).padStart(2, '0')}:${String(randM).padStart(2, '0')}`);
+      }
+
+      currentMcOptions = Array.from(optionsSet).slice(0, 4);
+      // Fisher-Yates 洗牌打亂選項順序
+      for (let i = currentMcOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [currentMcOptions[i], currentMcOptions[j]] = [currentMcOptions[j], currentMcOptions[i]];
+      }
+      currentMcCorrectIndex = currentMcOptions.indexOf(correctStr);
+
+      const quizContent = document.getElementById('quizContent');
+      const letters = ['A', 'B', 'C', 'D'];
+
+      quizContent.innerHTML = `
+        <div class="quiz-title">👀 仔細看時鐘，這是幾點幾分呢？</div>
+        <div style="font-size:0.9rem; color:#64748B; margin-bottom: 8px;">請點選四個選項中最正確的時間：</div>
+
+        <!-- 分鐘模式切換 -->
+        <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button class="step-btn" style="${quizMinuteMode === 'any' ? 'background: #2563EB; color: #FFF; border-color: #2563EB;' : ''} padding: 4px 12px; font-size: 0.85rem;" onclick="setMcDifficulty('any')">🎲 任意隨機分鐘 (如12分、28分)</button>
+          <button class="step-btn" style="${quizMinuteMode === 'step5' ? 'background: #2563EB; color: #FFF; border-color: #2563EB;' : ''} padding: 4px 12px; font-size: 0.85rem;" onclick="setMcDifficulty('step5')">⚡ 5分倍數 (基礎)</button>
+        </div>
+
+        <div class="choices-grid">
+          ${currentMcOptions.map((opt, idx) => `
+            <button class="choice-btn" id="mcBtn${idx}" onclick="selectMcAnswer(${idx})">
+              <span style="background: #F1F5F9; border-radius: 6px; padding: 2px 8px; font-size: 0.95rem; color: #64748B;">${letters[idx]}</span>
+              <span>${opt}</span>
+            </button>
+          `).join('')}
+        </div>
+
+        <div style="margin-top: 10px;">
+          <button class="step-btn" onclick="startMultipleChoiceQuiz()">換一題 🎲</button>
+        </div>
+        <div id="quizFeedback" class="feedback-msg"></div>
+      `;
+    }
+
+    function selectMcAnswer(selectedIndex) {
+      if (isMcAnswered) return;
+      const feedback = document.getElementById('quizFeedback');
+      const selectedBtn = document.getElementById(`mcBtn${selectedIndex}`);
+      const correctTime = currentMcOptions[currentMcCorrectIndex];
+
+      if (selectedIndex === currentMcCorrectIndex) {
+        isMcAnswered = true;
+        selectedBtn.classList.add('correct');
+        feedback.style.color = "var(--success)";
+        if (navigator.vibrate) try { navigator.vibrate([30, 40, 30]); } catch (_) {}
+        if (!currentQuizRewarded) {
+          currentQuizRewarded = true;
+          fishChances += 1;
+          saveStorage(); // 本地持久化儲存
+          updateRewardUI();
+          feedback.innerHTML = `
+            🎉 太厲害了！答對了！就是 <b>${correctTime}</b>！<br>
+            🎁 恭喜獲得 <b>1 次釣魚機會</b> 🎣！<br>
+            <button class="fish-action-btn" onclick="openFishingModal()">馬上甩竿釣魚 🎣</button>
+            <button class="step-btn" style="margin-left: 8px;" onclick="startMultipleChoiceQuiz()">下一題 ➔</button>
+          `;
+        } else {
+          feedback.innerHTML = `🎉 答對了！就是 <b>${correctTime}</b>！ <button class="step-btn" style="margin-left: 8px;" onclick="startMultipleChoiceQuiz()">下一題 ➔</button>`;
+        }
+      } else {
+        selectedBtn.classList.add('wrong');
+        feedback.style.color = "var(--minute-color)";
+        if (navigator.vibrate) try { navigator.vibrate(35); } catch (_) {}
+        feedback.innerHTML = `💡 不對喔！再看一眼短時針與長分針，換個選項試試看！`;
+      }
+    }
+
+    // --- 釣魚與水族箱互動模組 ---
+    function updateRewardUI() {
+      document.getElementById('fishChancesCount').textContent = fishChances;
+      document.getElementById('aquariumCount').textContent = caughtFishInventory.length;
+      const modalText = document.getElementById('modalChancesText');
+      if (modalText) modalText.textContent = fishChances;
+    }
+
+    function openFishingModal() {
+      document.getElementById('fishingModal').style.display = 'flex';
+      document.getElementById('catchResultBox').style.display = 'none';
+      const bobber = document.getElementById('fishingBobber');
+      bobber.className = 'bobber';
+      bobber.textContent = '🪱';
+      updateRewardUI();
+    }
+
+    function closeFishingModal() {
+      document.getElementById('fishingModal').style.display = 'none';
+    }
+
+    function castFishingRod() {
+      if (isCasting) return;
+      if (fishChances <= 0) {
+        alert("目前沒有魚餌囉！請到【任務一】或【任務二】答對題目賺取釣魚機會吧！🎣");
+        return;
+      }
+
+      isCasting = true;
+      fishChances -= 1;
+      saveStorage(); // 保存魚餌消耗
+      updateRewardUI();
+
+      const bobber = document.getElementById('fishingBobber');
+      const btnCast = document.getElementById('btnCastRod');
+      const resultBox = document.getElementById('catchResultBox');
+
+      resultBox.style.display = 'none';
+      btnCast.disabled = true;
+      btnCast.textContent = "釣線下沉中... 🌊";
+
+      // 釣魚浮標搖擺動畫
+      bobber.className = 'bobber fishing';
+      bobber.textContent = '🪡';
+
+      setTimeout(() => {
+        // 隨機抽魚 (按權重抽籤)
+        const totalWeight = FISH_POOL.reduce((sum, f) => sum + f.weight, 0);
+        let randomVal = Math.random() * totalWeight;
+        let caught = FISH_POOL[0];
+        for (const f of FISH_POOL) {
+          if (randomVal < f.weight) {
+            caught = f;
+            break;
+          }
+          randomVal -= f.weight;
+        }
+
+        // 加入水族箱收集並本地持久化
+        caughtFishInventory.push({ ...caught, caughtAt: new Date().toLocaleTimeString() });
+        saveStorage(); // 保存新捕獲的魚
+        updateRewardUI();
+
+        // 停止動畫，展示釣到成果
+        bobber.className = 'bobber';
+        bobber.textContent = '💦';
+
+        document.getElementById('catchStars').textContent = `稀有度：${caught.stars}`;
+        document.getElementById('catchEmoji').textContent = caught.emoji;
+        document.getElementById('catchName').textContent = caught.name;
+        document.getElementById('catchDesc').textContent = caught.desc;
+
+        resultBox.style.display = 'block';
+        btnCast.disabled = false;
+        btnCast.textContent = fishChances > 0 ? "再釣一次 🎣" : "甩竿釣魚 🎣";
+        isCasting = false;
+      }, 1200);
+    }
+
+    function openAquariumModal() {
+      document.getElementById('aquariumModal').style.display = 'flex';
+      const listContainer = document.getElementById('aquariumList');
+      listContainer.innerHTML = '';
+
+      if (caughtFishInventory.length === 0) {
+        listContainer.innerHTML = `
+          <div style="grid-column: 1 / -1; color: #94A3B8; padding: 24px; font-size: 0.95rem;">
+            水族箱裡還空空的喔！快去挑戰時鐘題目賺魚餌來釣魚吧！🌊
+          </div>
+        `;
+        return;
+      }
+
+      // 統計每種魚的數量
+      const counts = {};
+      FISH_POOL.forEach(f => counts[f.id] = 0);
+      caughtFishInventory.forEach(item => {
+        counts[item.id] = (counts[item.id] || 0) + 1;
+      });
+
+      // 渲染全圖鑑與持有數量
+      FISH_POOL.forEach(fish => {
+        const num = counts[fish.id] || 0;
+        const card = document.createElement('div');
+        card.className = 'aquarium-item';
+        if (num === 0) {
+          card.style.opacity = '0.35';
+          card.innerHTML = `
+            <div class="emoji">❔</div>
+            <div style="font-weight:600; color:#64748B;">???</div>
+            <div class="count" style="color:#94A3B8;">未解鎖</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="emoji">${fish.emoji}</div>
+            <div style="font-weight:600; color:#1E293B;">${fish.name}</div>
+            <div class="count">收集 ${num} 隻</div>
+            <div style="font-size:0.7rem; color:#F59E0B;">${fish.stars}</div>
+          `;
+        }
+        listContainer.appendChild(card);
+      });
+    }
+
+    function closeAquariumModal() {
+      document.getElementById('aquariumModal').style.display = 'none';
+      toggleResetArea(false);
+    }
+
+    // --- 管理員/家長密碼重置水族箱邏輯 ---
+    const AQUARIUM_RESET_PASSWORD = "8888";
+
+    function toggleResetArea(show) {
+      const area = document.getElementById('resetControlArea');
+      const input = document.getElementById('resetPasswordInput');
+      const feedback = document.getElementById('resetFeedback');
+      area.style.display = show ? 'block' : 'none';
+      input.value = '';
+      feedback.textContent = '';
+      if (show) {
+        input.focus();
+        input.onkeydown = function(e) {
+          if (e.key === 'Enter') executeAquariumReset();
+        };
+      }
+    }
+
+    function executeAquariumReset() {
+      const input = document.getElementById('resetPasswordInput');
+      const feedback = document.getElementById('resetFeedback');
+      const password = input.value.trim();
+
+      if (password === AQUARIUM_RESET_PASSWORD) {
+        caughtFishInventory = [];
+        fishChances = 0;
+        saveStorage(); // 同步重置本地儲存
+        updateRewardUI();
+        openAquariumModal(); // 重新整理水族箱介面
+        feedback.style.color = "var(--success)";
+        feedback.textContent = "✅ 水族箱已成功重置！已清空所有魚兒與魚餌。";
+        setTimeout(() => {
+          toggleResetArea(false);
+        }, 1500);
+      } else {
+        feedback.style.color = "var(--minute-color)";
+        feedback.textContent = "❌ 密碼錯誤！請輸入正確管理密碼。";
+        input.select();
+      }
+    }
+
+    // 初始化執行：先從 localStorage 還原進度，再繪製介面
+    loadStorage();
+    initClockFace();
+    render();
+    updateRewardUI();
+  </script>
+</body>
+</html>
